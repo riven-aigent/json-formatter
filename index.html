@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSONLab | JSON Formatter & Validator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --card: #111118;
+      --border: #222;
+      --text: #e0e0e0;
+      --muted: #888;
+      --accent: #22d3ee;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      padding: 20px 0 30px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 30px;
+    }
+    
+    header h1 {
+      font-size: 2rem;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    
+    .btn-secondary:hover {
+      border-color: var(--accent);
+    }
+    
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    @media (max-width: 900px) {
+      .editor-grid { grid-template-columns: 1fr; }
+    }
+    
+    .editor-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .panel-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .panel-actions button {
+      padding: 5px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    
+    .panel-actions button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: 15px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    
+    textarea:focus {
+      outline: none;
+    }
+    
+    .output {
+      padding: 15px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .status-bar {
+      padding: 10px 15px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .status-bar .valid {
+      color: var(--success);
+    }
+    
+    .status-bar .invalid {
+      color: var(--error);
+    }
+    
+    .status-bar .size {
+      color: var(--muted);
+    }
+    
+    .error-message {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid var(--error);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px;
+      color: var(--error);
+      font-size: 0.85rem;
+    }
+    
+    .json-key { color: #f472b6; }
+    .json-string { color: #4ade80; }
+    .json-number { color: #fbbf24; }
+    .json-boolean { color: #22d3ee; }
+    .json-null { color: var(--muted); }
+    
+    footer {
+      text-align: center;
+      padding: 30px 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 30px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--success);
+      color: var(--bg);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧪 JSONLab</h1>
+    <p>Format, validate, and transform JSON data</p>
+  </header>
+  
+  <div class="controls">
+    <button class="btn btn-primary" onclick="format()">Format (2 spaces)</button>
+    <button class="btn btn-secondary" onclick="format(4)">Format (4 spaces)</button>
+    <button class="btn btn-secondary" onclick="minify()">Minify</button>
+    <button class="btn btn-secondary" onclick="copyOutput()">Copy Output</button>
+    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+  </div>
+  
+  <div class="editor-grid">
+    <div class="editor-panel">
+      <div class="panel-header">
+        <span class="panel-title">Input JSON</span>
+        <div class="panel-actions">
+          <button onclick="loadSample()">Sample</button>
+          <button onclick="pasteInput()">Paste</button>
+        </div>
+      </div>
+      <textarea id="input" placeholder='{"paste": "your JSON here"}' oninput="validate()"></textarea>
+      <div class="status-bar">
+        <span id="input-status" class="valid">Ready</span>
+        <span id="input-size" class="size">0 bytes</span>
+      </div>
+    </div>
+    
+    <div class="editor-panel">
+      <div class="panel-header">
+        <span class="panel-title">Output</span>
+        <div class="panel-actions">
+          <button onclick="copyOutput()">Copy</button>
+          <button onclick="downloadOutput()">Download</button>
+        </div>
+      </div>
+      <div class="output" id="output"></div>
+      <div class="status-bar">
+        <span id="output-status" class="valid">-</span>
+        <span id="output-size" class="size">0 bytes</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast">Copied!</div>
+  
+  <footer>
+    <p>Paste JSON, click Format, done 🧪</p>
+  </footer>
+
+  <script>
+    let isValid = false;
+    let parsedJson = null;
+    
+    function validate() {
+      const input = document.getElementById('input').value.trim();
+      const status = document.getElementById('input-status');
+      const size = document.getElementById('input-size');
+      
+      size.textContent = formatBytes(input.length);
+      
+      if (!input) {
+        status.textContent = 'Ready';
+        status.className = 'valid';
+        isValid = false;
+        parsedJson = null;
+        return;
+      }
+      
+      try {
+        parsedJson = JSON.parse(input);
+        status.textContent = '✓ Valid JSON';
+        status.className = 'valid';
+        isValid = true;
+      } catch (e) {
+        status.textContent = '✗ ' + e.message;
+        status.className = 'invalid';
+        isValid = false;
+        parsedJson = null;
+      }
+    }
+    
+    function format(spaces = 2) {
+      const input = document.getElementById('input').value.trim();
+      if (!input) return;
+      
+      try {
+        const parsed = JSON.parse(input);
+        const formatted = JSON.stringify(parsed, null, spaces);
+        displayOutput(formatted);
+        showToast('Formatted!');
+      } catch (e) {
+        displayError(e.message);
+      }
+    }
+    
+    function minify() {
+      const input = document.getElementById('input').value.trim();
+      if (!input) return;
+      
+      try {
+        const parsed = JSON.parse(input);
+        const minified = JSON.stringify(parsed);
+        displayOutput(minified);
+        showToast('Minified!');
+      } catch (e) {
+        displayError(e.message);
+      }
+    }
+    
+    function displayOutput(json) {
+      const output = document.getElementById('output');
+      const status = document.getElementById('output-status');
+      const size = document.getElementById('output-size');
+      
+      output.innerHTML = syntaxHighlight(json);
+      size.textContent = formatBytes(json.length);
+      status.textContent = '✓ Formatted';
+      status.className = 'valid';
+    }
+    
+    function displayError(message) {
+      const output = document.getElementById('output');
+      const status = document.getElementById('output-status');
+      
+      output.innerHTML = `<div class="error-message">Error: ${escapeHtml(message)}</div>`;
+      status.textContent = '✗ Error';
+      status.className = 'invalid';
+    }
+    
+    function syntaxHighlight(json) {
+      json = escapeHtml(json);
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 bytes';
+      const k = 1024;
+      const sizes = ['bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    
+    function copyOutput() {
+      const output = document.getElementById('output');
+      const text = output.textContent;
+      navigator.clipboard.writeText(text);
+      showToast('Copied to clipboard!');
+    }
+    
+    function downloadOutput() {
+      const output = document.getElementById('output').textContent;
+      const blob = new Blob([output], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'formatted.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloaded!');
+    }
+    
+    function pasteInput() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById('input').value = text;
+        validate();
+      });
+    }
+    
+    function clearAll() {
+      document.getElementById('input').value = '';
+      document.getElementById('output').innerHTML = '';
+      document.getElementById('input-status').textContent = 'Ready';
+      document.getElementById('input-status').className = 'valid';
+      document.getElementById('input-size').textContent = '0 bytes';
+      document.getElementById('output-status').textContent = '-';
+      document.getElementById('output-size').textContent = '0 bytes';
+    }
+    
+    function loadSample() {
+      const sample = {
+        "name": "JSONLab",
+        "version": "1.0.0",
+        "features": ["format", "minify", "validate", "syntax highlight"],
+        "settings": {
+          "indentSize": 2,
+          "darkMode": true
+        },
+        "stats": {
+          "users": 1000,
+          "rating": 4.8,
+          "active": true
+        },
+        "tags": null
+      };
+      document.getElementById('input').value = JSON.stringify(sample);
+      validate();
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
